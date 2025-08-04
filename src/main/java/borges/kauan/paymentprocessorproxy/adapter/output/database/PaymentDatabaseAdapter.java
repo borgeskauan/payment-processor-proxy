@@ -10,6 +10,8 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @Repository
 public class PaymentDatabaseAdapter implements PaymentRepositoryPort {
@@ -23,14 +25,44 @@ public class PaymentDatabaseAdapter implements PaymentRepositoryPort {
 
     @Override
     public ProcessedPaymentsSummaryResponse getPaymentsSummary(Instant from, Instant to) {
-        var sampleSummary = ProcessedPaymentsSummary.builder()
-                .totalAmount(BigDecimal.valueOf(1000.0))
-                .totalRequests(10L)
-                .build();
+        List<Payment> filteredPayments = filterPayments(from, to);
+
+        Map<String, List<Payment>> groupedPayments = filteredPayments.stream()
+                .collect(Collectors.groupingBy(Payment::getProcessedBy));
+
+        var defaultSummary = buildSummary(groupedPayments.get("default"));
+        var fallbackSummary = buildSummary(groupedPayments.get("fallback"));
 
         return ProcessedPaymentsSummaryResponse.builder()
-                .defaultSummary(sampleSummary)
-                .fallback(sampleSummary)
+                .defaultSummary(defaultSummary)
+                .fallback(fallbackSummary)
                 .build();
+    }
+
+    private ProcessedPaymentsSummary buildSummary(List<Payment> payments) {
+        if (payments == null || payments.isEmpty()) {
+            return ProcessedPaymentsSummary.builder()
+                    .totalAmount(BigDecimal.valueOf(0.0))
+                    .totalRequests(0L)
+                    .build();
+        }
+
+        BigDecimal totalAmount = payments.stream()
+                .map(Payment::getAmount)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        long totalCount = payments.size();
+
+        return ProcessedPaymentsSummary.builder()
+                .totalAmount(totalAmount)
+                .totalRequests(totalCount)
+                .build();
+    }
+
+    private List<Payment> filterPayments(Instant from, Instant to) {
+        return paymentRequests.stream()
+                .filter(payment -> (from == null || payment.getTimestamp().isAfter(from)) &&
+                        (to == null || payment.getTimestamp().isBefore(to)))
+                .toList();
     }
 }

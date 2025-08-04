@@ -24,12 +24,13 @@ public class PaymentProcessorService implements PaymentProcessorUseCase {
 
     @Override
     public void processPayment(PaymentRequest paymentRequest) {
-        paymentGatewayPort.processPayment(paymentRequest);
+        String processedBy = paymentGatewayPort.processPayment(paymentRequest);
 
         var payment = Payment.builder()
                 .id(UUID.randomUUID().toString())
                 .correlationId(paymentRequest.getCorrelationId())
                 .amount(paymentRequest.getAmount())
+                .processedBy(processedBy)
                 .build();
 
         paymentRepositoryPort.savePayment(payment);

@@ -27,18 +27,18 @@ public class PaymentGatewayAdapter implements PaymentGatewayPort {
     }
 
     @Override
-    public void processPayment(PaymentRequest paymentRequest) {
-        circuitBreakerFactory.create("paymentCircuitBreaker").run(
+    public String processPayment(PaymentRequest paymentRequest) {
+        return circuitBreakerFactory.create("paymentCircuitBreaker").run(
                 () -> processPaymentDefault(paymentRequest),
                 throwable -> processPaymentFallback(throwable, paymentRequest)
         );
     }
 
-    private Object processPaymentDefault(PaymentRequest paymentRequest) {
+    private String processPaymentDefault(PaymentRequest paymentRequest) {
         try {
             // Call the default payment service
             defaultPaymentRestClient.processPayment(paymentRequest);
-            return null; // Return an appropriate response if needed
+            return "default";
         } catch (FeignException.UnprocessableEntity e) {
             log.warn("Payment processing failed with 422 Unprocessable Entity: {}", e.getMessage());
 
@@ -46,14 +46,14 @@ public class PaymentGatewayAdapter implements PaymentGatewayPort {
         }
     }
 
-    private Object processPaymentFallback(Throwable throwable, PaymentRequest paymentRequest) {
+    private String processPaymentFallback(Throwable throwable, PaymentRequest paymentRequest) {
         try {
             // Log the error or handle it as needed
             System.err.println("Error processing payment, falling back: " + throwable.getMessage());
 
             // Call the fallback payment service
             fallbackPaymentRestClient.processPayment(paymentRequest);
-            return null; // Return an appropriate response if needed
+            return "fallback";
         } catch (FeignException.UnprocessableEntity e) {
             log.warn("Payment processing failed with 422 Unprocessable Entity: {}", e.getMessage());
 
