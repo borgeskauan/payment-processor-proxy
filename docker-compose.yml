@@ -1,0 +1,24 @@
+services:
+  app:
+#    image: your-app-image  # Substitua pelo nome da sua imagem ou mantenha se estiver usando build
+    build: .  # Remove esta linha se estiver usando imagem pré-construída
+    environment:
+        - PAYMENT_GATEWAY_DEFAULT=http://payment-processor-default:8001
+        - PAYMENT_GATEWAY_FALLBACK=http://payment-processor-fallback:8002
+    ports:
+      - "9999:8080"  # Mapeia porta 9999 do host para 8080 do container
+    networks:
+      - backend
+      - payment-processor
+    deploy:
+      resources:
+        limits:
+          cpus: "1.5"
+          memory: "350MB"
+    restart: unless-stopped
+
+networks:
+  backend:
+    driver: bridge
+  payment-processor:
+    external: true

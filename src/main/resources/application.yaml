@@ -1,3 +1,9 @@
 spring:
   application:
     name: payment-processor-proxy
+
+payment:
+  gateway:
+    url: ${PAYMENT_GATEWAY_DEFAULT:http://localhost:8001}
+    fallback:
+      url: ${PAYMENT_GATEWAY_FALLBACK:http://localhost:8002}

@@ -2,11 +2,10 @@ package borges.kauan.paymentprocessorproxy.adapter.input;
 
 import borges.kauan.paymentprocessorproxy.domain.dto.PaymentRequest;
 import borges.kauan.paymentprocessorproxy.domain.dto.ProcessedPaymentsSummaryResponse;
-import borges.kauan.paymentprocessorproxy.ports.input.PaymentProcessorUseCase;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RestController;
+import borges.kauan.paymentprocessorproxy.port.input.PaymentProcessorUseCase;
+import org.springframework.web.bind.annotation.*;
+
+import java.time.Instant;
 
 @RestController
 public class PaymentProcessorController {
@@ -23,7 +22,8 @@ public class PaymentProcessorController {
     }
 
     @GetMapping("/payments-summary")
-    public ProcessedPaymentsSummaryResponse getPaymentsSummary() {
-        return paymentProcessorUseCase.getPaymentsSummary();
+    public ProcessedPaymentsSummaryResponse getPaymentsSummary(@RequestParam(required = false) Instant from,
+                                                               @RequestParam(required = false) Instant to) {
+        return paymentProcessorUseCase.getPaymentsSummary(from, to);
     }
 }

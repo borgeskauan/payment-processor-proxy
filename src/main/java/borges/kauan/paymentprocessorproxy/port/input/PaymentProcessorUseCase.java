@@ -1,11 +1,13 @@
-package borges.kauan.paymentprocessorproxy.ports.input;
+package borges.kauan.paymentprocessorproxy.port.input;
 
 import borges.kauan.paymentprocessorproxy.domain.dto.PaymentRequest;
 import borges.kauan.paymentprocessorproxy.domain.dto.ProcessedPaymentsSummaryResponse;
+
+import java.time.Instant;
 
 public interface PaymentProcessorUseCase {
 
     void processPayment(PaymentRequest paymentRequest);
 
-    ProcessedPaymentsSummaryResponse getPaymentsSummary();
+    ProcessedPaymentsSummaryResponse getPaymentsSummary(Instant from, Instant to);
 }
