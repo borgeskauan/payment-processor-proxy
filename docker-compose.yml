@@ -3,8 +3,8 @@ services:
 #    image: your-app-image  # Substitua pelo nome da sua imagem ou mantenha se estiver usando build
     build: .  # Remove esta linha se estiver usando imagem pré-construída
     environment:
-        - PAYMENT_GATEWAY_DEFAULT=http://payment-processor-default:8001
-        - PAYMENT_GATEWAY_FALLBACK=http://payment-processor-fallback:8002
+        - PAYMENT_GATEWAY_DEFAULT=http://payment-processor-default:8080
+        - PAYMENT_GATEWAY_FALLBACK=http://payment-processor-fallback:8080
     ports:
       - "9999:8080"  # Mapeia porta 9999 do host para 8080 do container
     networks:

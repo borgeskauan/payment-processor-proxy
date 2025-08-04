@@ -9,4 +9,6 @@ public interface PaymentRepositoryPort {
     void savePayment(Payment paymentRequest);
 
     ProcessedPaymentsSummaryResponse getPaymentsSummary(Instant from, Instant to);
+
+    void purgePayments();
 }

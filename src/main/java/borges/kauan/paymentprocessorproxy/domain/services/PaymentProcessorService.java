@@ -24,13 +24,19 @@ public class PaymentProcessorService implements PaymentProcessorUseCase {
 
     @Override
     public void processPayment(PaymentRequest paymentRequest) {
-        String processedBy = paymentGatewayPort.processPayment(paymentRequest);
+        Instant timestamp = Instant.now();
+
+        String processedBy = paymentGatewayPort.processPayment(
+                paymentRequest
+                        .withRequestedAt(timestamp)
+        );
 
         var payment = Payment.builder()
                 .id(UUID.randomUUID().toString())
                 .correlationId(paymentRequest.getCorrelationId())
                 .amount(paymentRequest.getAmount())
                 .processedBy(processedBy)
+                .timestamp(timestamp)
                 .build();
 
         paymentRepositoryPort.savePayment(payment);
@@ -39,5 +45,10 @@ public class PaymentProcessorService implements PaymentProcessorUseCase {
     @Override
     public ProcessedPaymentsSummaryResponse getPaymentsSummary(Instant from, Instant to) {
         return paymentRepositoryPort.getPaymentsSummary(from, to);
+    }
+
+    @Override
+    public void purgePayments() {
+        paymentRepositoryPort.purgePayments();
     }
 }

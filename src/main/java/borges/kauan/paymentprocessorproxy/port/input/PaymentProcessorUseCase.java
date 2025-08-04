@@ -10,4 +10,6 @@ public interface PaymentProcessorUseCase {
     void processPayment(PaymentRequest paymentRequest);
 
     ProcessedPaymentsSummaryResponse getPaymentsSummary(Instant from, Instant to);
+
+    void purgePayments();
 }

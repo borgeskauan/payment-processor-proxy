@@ -26,4 +26,9 @@ public class PaymentProcessorController {
                                                                @RequestParam(required = false) Instant to) {
         return paymentProcessorUseCase.getPaymentsSummary(from, to);
     }
+
+    @PostMapping("/purge-payments")
+    public void purgePayments() {
+        paymentProcessorUseCase.purgePayments();
+    }
 }

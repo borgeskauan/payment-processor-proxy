@@ -39,6 +39,11 @@ public class PaymentDatabaseAdapter implements PaymentRepositoryPort {
                 .build();
     }
 
+    @Override
+    public void purgePayments() {
+        paymentRequests.clear();
+    }
+
     private ProcessedPaymentsSummary buildSummary(List<Payment> payments) {
         if (payments == null || payments.isEmpty()) {
             return ProcessedPaymentsSummary.builder()
