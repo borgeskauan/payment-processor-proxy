@@ -2,8 +2,31 @@ spring:
   application:
     name: payment-processor-proxy
 
+#  data:
+#    redis:
+#      host: ${REDIS_HOST:redis}
+#      port: ${REDIS_PORT:6379}
+
 payment:
   gateway:
     url: ${PAYMENT_GATEWAY_DEFAULT:http://localhost:8001}
     fallback:
       url: ${PAYMENT_GATEWAY_FALLBACK:http://localhost:8002}
+
+server:
+  tomcat:
+    threads:
+      max: 1000  # Up from default 200
+      min-spare: 200
+    accept-count: 2000  # Queue when all threads busy
+    max-connections: 10000
+    connection-timeout: 2s  # More aggressive than default
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: "*"
+  metrics:
+    tags:
+      application: ${spring.application.name}

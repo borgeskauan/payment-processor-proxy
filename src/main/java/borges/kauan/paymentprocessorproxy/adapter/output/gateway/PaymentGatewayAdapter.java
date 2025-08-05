@@ -28,10 +28,18 @@ public class PaymentGatewayAdapter implements PaymentGatewayPort {
 
     @Override
     public String processPayment(PaymentRequest paymentRequest) {
-        return circuitBreakerFactory.create("paymentCircuitBreaker").run(
-                () -> processPaymentDefault(paymentRequest),
-                throwable -> processPaymentFallback(throwable, paymentRequest)
-        );
+        try {
+            return circuitBreakerFactory.create("paymentCircuitBreaker").run(
+                    () -> processPaymentDefault(paymentRequest),
+                    throwable -> processPaymentFallback(throwable, paymentRequest)
+            );
+        } catch (PaymentAlreadyProcessedException e) {
+            log.warn("Payment already processed for correlation ID: {}", paymentRequest.getCorrelationId());
+            throw e; // Re-throw the exception to be handled by the circuit breaker
+        } catch (Exception e) {
+            log.error("Error processing payment: {}", e.getMessage());
+            return "none";
+        }
     }
 
     private String processPaymentDefault(PaymentRequest paymentRequest) {
@@ -48,8 +56,8 @@ public class PaymentGatewayAdapter implements PaymentGatewayPort {
 
     private String processPaymentFallback(Throwable throwable, PaymentRequest paymentRequest) {
         try {
-            // Log the error or handle it as needed
-            System.err.println("Error processing payment, falling back: " + throwable.getMessage());
+            // Log the error or handle it as needed.
+            log.warn("Error processing payment, falling back: " + throwable.getMessage());
 
             // Call the fallback payment service
             fallbackPaymentRestClient.processPayment(paymentRequest);
