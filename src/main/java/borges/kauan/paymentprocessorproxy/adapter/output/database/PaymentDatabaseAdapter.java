@@ -1,9 +1,11 @@
 package borges.kauan.paymentprocessorproxy.adapter.output.database;
 
-import borges.kauan.paymentprocessorproxy.domain.dto.ProcessedPaymentsSummaryResponse;
-import borges.kauan.paymentprocessorproxy.domain.entity.Payment;
-import borges.kauan.paymentprocessorproxy.domain.entity.ProcessedPaymentsSummary;
+import borges.kauan.paymentprocessorproxy.domain.infra.MetricsRegister;
+import borges.kauan.paymentprocessorproxy.domain.payment.dto.ProcessedPaymentsSummaryResponse;
+import borges.kauan.paymentprocessorproxy.domain.payment.entity.Payment;
+import borges.kauan.paymentprocessorproxy.domain.payment.entity.ProcessedPaymentsSummary;
 import borges.kauan.paymentprocessorproxy.port.output.PaymentRepositoryPort;
+import io.micrometer.core.instrument.Timer;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Repository;
 
@@ -19,13 +21,19 @@ import java.util.stream.Collectors;
 public class PaymentDatabaseAdapter implements PaymentRepositoryPort {
 
     private final RedisTemplate<String, String> redisTemplate;
+    private final Timer timer;
 
-    public PaymentDatabaseAdapter(RedisTemplate<String, String> redisTemplate) {
+    public PaymentDatabaseAdapter(RedisTemplate<String, String> redisTemplate, MetricsRegister metricsRegister) {
         this.redisTemplate = redisTemplate;
+        this.timer = metricsRegister.createTimer("redis.payment.add.time");
     }
 
     @Override
     public void savePayment(Payment payment) {
+        timer.record(() -> savePaymentInternal(payment));
+    }
+
+    private void savePaymentInternal(Payment payment) {
         String key = "payment:" + payment.getId();
         redisTemplate.opsForHash().put(key, "id", payment.getId());
         redisTemplate.opsForHash().put(key, "correlationId", payment.getCorrelationId());

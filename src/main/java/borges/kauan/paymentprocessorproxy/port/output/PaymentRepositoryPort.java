@@ -1,7 +1,7 @@
 package borges.kauan.paymentprocessorproxy.port.output;
 
-import borges.kauan.paymentprocessorproxy.domain.dto.ProcessedPaymentsSummaryResponse;
-import borges.kauan.paymentprocessorproxy.domain.entity.Payment;
+import borges.kauan.paymentprocessorproxy.domain.payment.dto.ProcessedPaymentsSummaryResponse;
+import borges.kauan.paymentprocessorproxy.domain.payment.entity.Payment;
 
 import java.time.Instant;
 

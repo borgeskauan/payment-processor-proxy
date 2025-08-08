@@ -14,9 +14,11 @@ public class AsyncConfig {
     @Bean(name = "workExecutor")
     public Executor workExecutor() {
         ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
-//        executor.setCorePoolSize(100);      // number of threads tends to this number
-//        executor.setMaxPoolSize(200);      // maximum threads
+
+        executor.setCorePoolSize(100);      // number of threads
         executor.setThreadNamePrefix("WorkExecutor-");
+        executor.setPrestartAllCoreThreads(true); // prestart all core threads
+
         executor.initialize();
         return executor;
     }

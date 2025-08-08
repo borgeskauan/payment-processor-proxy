@@ -1,4 +1,4 @@
-package borges.kauan.paymentprocessorproxy.domain.entity;
+package borges.kauan.paymentprocessorproxy.domain.payment.entity;
 
 import lombok.Builder;
 import lombok.Data;

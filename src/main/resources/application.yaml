@@ -4,7 +4,7 @@ spring:
 
   data:
     redis:
-      host: ${REDIS_HOST:redis}
+      host: ${REDIS_HOST:localhost}
       port: ${REDIS_PORT:6379}
 
 payment:
@@ -12,15 +12,6 @@ payment:
     url: ${PAYMENT_GATEWAY_DEFAULT:http://localhost:8001}
     fallback:
       url: ${PAYMENT_GATEWAY_FALLBACK:http://localhost:8002}
-
-server:
-  tomcat:
-    threads:
-      max: 1000  # Up from default 200
-      min-spare: 200
-    accept-count: 2000  # Queue when all threads busy
-    max-connections: 10000
-    connection-timeout: 2s  # More aggressive than default
 
 management:
   endpoints:

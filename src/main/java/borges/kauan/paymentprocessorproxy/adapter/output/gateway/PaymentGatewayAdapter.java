@@ -1,11 +1,11 @@
 package borges.kauan.paymentprocessorproxy.adapter.output.gateway;
 
-import borges.kauan.paymentprocessorproxy.domain.PaymentAlreadyProcessedException;
-import borges.kauan.paymentprocessorproxy.domain.dto.PaymentRequest;
+import borges.kauan.paymentprocessorproxy.domain.infra.MetricsRegister;
+import borges.kauan.paymentprocessorproxy.domain.infra.PaymentGatewayCircuitBreaker;
+import borges.kauan.paymentprocessorproxy.domain.payment.dto.PaymentRequest;
 import borges.kauan.paymentprocessorproxy.port.output.PaymentGatewayPort;
-import feign.FeignException;
+import io.micrometer.core.instrument.Timer;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.cloud.client.circuitbreaker.CircuitBreakerFactory;
 import org.springframework.stereotype.Repository;
 
 @Slf4j
@@ -13,59 +13,59 @@ import org.springframework.stereotype.Repository;
 @Repository
 public class PaymentGatewayAdapter implements PaymentGatewayPort {
 
-    private final CircuitBreakerFactory circuitBreakerFactory;
+    private final PaymentGatewayCircuitBreaker circuitBreaker;
 
     private final DefaultPaymentRestClient defaultPaymentRestClient;
     private final FallbackPaymentRestClient fallbackPaymentRestClient;
 
-    public PaymentGatewayAdapter(CircuitBreakerFactory circuitBreakerFactory,
+    private final MetricsRegister metricsRegister;
+
+    private final Timer timer;
+
+    public PaymentGatewayAdapter(PaymentGatewayCircuitBreaker circuitBreaker,
                                  DefaultPaymentRestClient defaultPaymentRestClient,
-                                 FallbackPaymentRestClient fallbackPaymentRestClient) {
-        this.circuitBreakerFactory = circuitBreakerFactory;
+                                 FallbackPaymentRestClient fallbackPaymentRestClient,
+                                 MetricsRegister metricsRegister) {
+        this.circuitBreaker = circuitBreaker;
         this.defaultPaymentRestClient = defaultPaymentRestClient;
         this.fallbackPaymentRestClient = fallbackPaymentRestClient;
+        this.metricsRegister = metricsRegister;
+        this.timer = metricsRegister.createTimer("payment.processor.time");
+
+        circuitBreaker.onDefaultProcessorBecomesResponsiveAgain(() -> {
+            log.info("Circuit breaker transitioned from HALF_OPEN to CLOSED");
+        });
     }
 
     @Override
     public String processPayment(PaymentRequest paymentRequest) {
+        return timer.record(() -> processPaymentInternal(paymentRequest));
+    }
+
+    private String processPaymentInternal(PaymentRequest paymentRequest) {
         try {
-            return circuitBreakerFactory.create("paymentCircuitBreaker").run(
+            return circuitBreaker.run(
                     () -> processPaymentDefault(paymentRequest),
                     throwable -> processPaymentFallback(throwable, paymentRequest)
             );
-        } catch (PaymentAlreadyProcessedException e) {
-            log.warn("Payment already processed for correlation ID: {}", paymentRequest.getCorrelationId());
-            throw e;
         } catch (Exception e) {
             log.error("Error processing payment: {}", e.getMessage());
+
+            metricsRegister.countPaymentDropped();
+
             throw e;
         }
     }
 
     private String processPaymentDefault(PaymentRequest paymentRequest) {
-        try {
-            // Call the default payment service
-            defaultPaymentRestClient.processPayment(paymentRequest);
-            return "default";
-        } catch (FeignException.UnprocessableEntity e) {
-            log.warn("Payment processing failed with 422 Unprocessable Entity: {}", e.getMessage());
-
-            throw new PaymentAlreadyProcessedException("Payment already processed for correlation ID: " + paymentRequest.getCorrelationId(), e);
-        }
+        defaultPaymentRestClient.processPayment(paymentRequest);
+        return "default";
     }
 
     private String processPaymentFallback(Throwable throwable, PaymentRequest paymentRequest) {
-        try {
-            // Log the error or handle it as needed.
-            log.warn("Error processing payment, falling back: " + throwable.getMessage());
+        log.warn("Error processing payment, falling back: " + throwable.getMessage());
 
-            // Call the fallback payment service
-            fallbackPaymentRestClient.processPayment(paymentRequest);
-            return "fallback";
-        } catch (FeignException.UnprocessableEntity e) {
-            log.warn("Payment processing failed with 422 Unprocessable Entity: {}", e.getMessage());
-
-            throw new PaymentAlreadyProcessedException("Payment already processed for correlation ID: " + paymentRequest.getCorrelationId(), e);
-        }
+        fallbackPaymentRestClient.processPayment(paymentRequest);
+        return "fallback";
     }
 }

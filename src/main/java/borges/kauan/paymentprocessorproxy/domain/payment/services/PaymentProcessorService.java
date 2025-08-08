@@ -1,8 +1,9 @@
-package borges.kauan.paymentprocessorproxy.domain.services;
+package borges.kauan.paymentprocessorproxy.domain.payment.services;
 
-import borges.kauan.paymentprocessorproxy.domain.dto.PaymentRequest;
-import borges.kauan.paymentprocessorproxy.domain.dto.ProcessedPaymentsSummaryResponse;
-import borges.kauan.paymentprocessorproxy.domain.entity.Payment;
+import borges.kauan.paymentprocessorproxy.domain.infra.MetricsRegister;
+import borges.kauan.paymentprocessorproxy.domain.payment.dto.PaymentRequest;
+import borges.kauan.paymentprocessorproxy.domain.payment.dto.ProcessedPaymentsSummaryResponse;
+import borges.kauan.paymentprocessorproxy.domain.payment.entity.Payment;
 import borges.kauan.paymentprocessorproxy.port.input.PaymentProcessorUseCase;
 import borges.kauan.paymentprocessorproxy.port.output.PaymentGatewayPort;
 import borges.kauan.paymentprocessorproxy.port.output.PaymentRepositoryPort;
@@ -19,9 +20,12 @@ public class PaymentProcessorService implements PaymentProcessorUseCase {
     private final PaymentGatewayPort paymentGatewayPort;
     private final PaymentRepositoryPort paymentRepositoryPort;
 
-    public PaymentProcessorService(PaymentGatewayPort paymentGatewayPort, PaymentRepositoryPort paymentRepositoryPort) {
+    private final MetricsRegister metricsRegister;
+
+    public PaymentProcessorService(PaymentGatewayPort paymentGatewayPort, PaymentRepositoryPort paymentRepositoryPort, MetricsRegister metricsRegister) {
         this.paymentGatewayPort = paymentGatewayPort;
         this.paymentRepositoryPort = paymentRepositoryPort;
+        this.metricsRegister = metricsRegister;
     }
 
     @Override
@@ -40,6 +44,8 @@ public class PaymentProcessorService implements PaymentProcessorUseCase {
                 .build();
 
         paymentRepositoryPort.savePayment(payment);
+
+        metricsRegister.countPaymentProcessedSuccessfully();
     }
 
     @Override
