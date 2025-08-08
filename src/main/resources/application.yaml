@@ -2,10 +2,10 @@ spring:
   application:
     name: payment-processor-proxy
 
-#  data:
-#    redis:
-#      host: ${REDIS_HOST:redis}
-#      port: ${REDIS_PORT:6379}
+  data:
+    redis:
+      host: ${REDIS_HOST:redis}
+      port: ${REDIS_PORT:6379}
 
 payment:
   gateway:
