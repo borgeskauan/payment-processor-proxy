@@ -6,8 +6,6 @@ services:
       - PAYMENT_GATEWAY_FALLBACK=http://payment-processor-fallback:8080
       - REDIS_HOST=redis
       - REDIS_PORT=6379
-    ports:
-      - "9999:8080"
     networks:
       - backend
       - payment-processor
@@ -20,8 +18,8 @@ services:
     depends_on:
       - redis
 
-#  app2:
-#    <<: *app-config
+  app2:
+    <<: *app-config
 
   redis:
     image: redis:alpine
@@ -36,17 +34,17 @@ services:
 #          memory: "2000MB"
     restart: unless-stopped
 
-#  load-balancer:
-#    image: nginx:alpine
-#    ports:
-#      - "9999:80"
-#    volumes:
-#      - ./nginx.conf:/etc/nginx/nginx.conf
-#    networks:
-#      - backend
-#    depends_on:
-#      - app1
-#      - app2
+  load-balancer:
+    image: nginx:alpine
+    ports:
+      - "9999:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf
+    networks:
+      - backend
+    depends_on:
+      - app1
+      - app2
 
 networks:
   backend:

@@ -2,12 +2,14 @@ package borges.kauan.paymentprocessorproxy.domain.services;
 
 import borges.kauan.paymentprocessorproxy.domain.dto.PaymentRequest;
 import borges.kauan.paymentprocessorproxy.domain.dto.ProcessedPaymentsSummaryResponse;
+import borges.kauan.paymentprocessorproxy.domain.entity.Payment;
 import borges.kauan.paymentprocessorproxy.port.input.PaymentProcessorUseCase;
 import borges.kauan.paymentprocessorproxy.port.output.PaymentGatewayPort;
 import borges.kauan.paymentprocessorproxy.port.output.PaymentRepositoryPort;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
+import java.util.UUID;
 
 @Service
 public class PaymentProcessorService implements PaymentProcessorUseCase {
@@ -22,22 +24,22 @@ public class PaymentProcessorService implements PaymentProcessorUseCase {
 
     @Override
     public void processPayment(PaymentRequest paymentRequest) {
-//        Instant timestamp = Instant.now();
+        Instant timestamp = Instant.now();
 
-//        String processedBy = paymentGatewayPort.processPayment(
-//                paymentRequest
-//                        .withRequestedAt(timestamp)
-//        );
+        String processedBy = paymentGatewayPort.processPayment(
+                paymentRequest
+                        .withRequestedAt(timestamp)
+        );
 
-//        var payment = Payment.builder()
-//                .id(UUID.randomUUID().toString())
-//                .correlationId(paymentRequest.getCorrelationId())
-//                .amount(paymentRequest.getAmount())
-//                .processedBy("default")
-//                .timestamp(timestamp)
-//                .build();
+        var payment = Payment.builder()
+                .id(UUID.randomUUID().toString())
+                .correlationId(paymentRequest.getCorrelationId())
+                .amount(paymentRequest.getAmount())
+                .processedBy(processedBy)
+                .timestamp(timestamp)
+                .build();
 
-//        paymentRepositoryPort.savePayment(payment);
+        paymentRepositoryPort.savePayment(payment);
     }
 
     @Override
