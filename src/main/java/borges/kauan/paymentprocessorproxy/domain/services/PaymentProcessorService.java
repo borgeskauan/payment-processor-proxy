@@ -25,11 +25,10 @@ public class PaymentProcessorService implements PaymentProcessorUseCase {
     @Override
     public void processPayment(PaymentRequest paymentRequest) {
         Instant timestamp = Instant.now();
+        var requestWithTimestamp = paymentRequest.withRequestedAt(timestamp);
 
-        String processedBy = paymentGatewayPort.processPayment(
-                paymentRequest
-                        .withRequestedAt(timestamp)
-        );
+        String processedBy = paymentGatewayPort.processPayment(requestWithTimestamp)
+                .orElseThrow(() -> new IllegalStateException("Payment processing failed, no service returned a response."));
 
         var payment = Payment.builder()
                 .id(UUID.randomUUID().toString())

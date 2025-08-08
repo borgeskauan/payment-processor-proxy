@@ -11,6 +11,7 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -39,31 +40,26 @@ public class PaymentDatabaseAdapter implements PaymentRepositoryPort {
 
     @Override
     public ProcessedPaymentsSummaryResponse getPaymentsSummary(Instant from, Instant to) {
-        return ProcessedPaymentsSummaryResponse.builder()
-                .defaultSummary(buildSummary(List.of()))
-                .fallback(buildSummary(List.of()))
-                .build();
+        List<Payment> filteredPayments = filterPayments(from, to);
 
-//        List<Payment> filteredPayments = filterPayments(from, to);
-//
-//        Map<String, List<Payment>> groupedPayments = filteredPayments.stream()
-//                .collect(Collectors.groupingBy(Payment::getProcessedBy));
-//
-//        var defaultSummary = buildSummary(groupedPayments.get("default"));
-//        var fallbackSummary = buildSummary(groupedPayments.get("fallback"));
-//
-//        return ProcessedPaymentsSummaryResponse.builder()
-//                .defaultSummary(defaultSummary)
-//                .fallback(fallbackSummary)
-//                .build();
+        Map<String, List<Payment>> groupedPayments = filteredPayments.stream()
+                .collect(Collectors.groupingBy(Payment::getProcessedBy));
+
+        var defaultSummary = buildSummary(groupedPayments.get("default"));
+        var fallbackSummary = buildSummary(groupedPayments.get("fallback"));
+
+        return ProcessedPaymentsSummaryResponse.builder()
+                .defaultSummary(defaultSummary)
+                .fallback(fallbackSummary)
+                .build();
     }
 
     @Override
     public void purgePayments() {
-//        Objects.requireNonNull(redisTemplate.getConnectionFactory())
-//                .getConnection()
-//                .serverCommands()
-//                .flushDb();
+        Objects.requireNonNull(redisTemplate.getConnectionFactory())
+                .getConnection()
+                .serverCommands()
+                .flushDb();
     }
 
     private List<Payment> filterPayments(Instant from, Instant to) {
