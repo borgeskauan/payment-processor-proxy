@@ -6,11 +6,13 @@ import borges.kauan.paymentprocessorproxy.domain.entity.Payment;
 import borges.kauan.paymentprocessorproxy.port.input.PaymentProcessorUseCase;
 import borges.kauan.paymentprocessorproxy.port.output.PaymentGatewayPort;
 import borges.kauan.paymentprocessorproxy.port.output.PaymentRepositoryPort;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
 import java.util.UUID;
 
+@Slf4j
 @Service
 public class PaymentProcessorService implements PaymentProcessorUseCase {
 
@@ -27,8 +29,7 @@ public class PaymentProcessorService implements PaymentProcessorUseCase {
         Instant timestamp = Instant.now();
         var requestWithTimestamp = paymentRequest.withRequestedAt(timestamp);
 
-        String processedBy = paymentGatewayPort.processPayment(requestWithTimestamp)
-                .orElseThrow(() -> new IllegalStateException("Payment processing failed, no service returned a response."));
+        String processedBy = paymentGatewayPort.processPayment(requestWithTimestamp);
 
         var payment = Payment.builder()
                 .id(UUID.randomUUID().toString())

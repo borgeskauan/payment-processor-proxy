@@ -13,14 +13,16 @@ import java.time.Instant;
 public class PaymentProcessorController {
 
     private final PaymentProcessorUseCase paymentProcessorUseCase;
+    private final WorkService workService;
 
-    public PaymentProcessorController(PaymentProcessorUseCase paymentProcessorUseCase) {
+    public PaymentProcessorController(PaymentProcessorUseCase paymentProcessorUseCase, WorkService workService) {
         this.paymentProcessorUseCase = paymentProcessorUseCase;
+        this.workService = workService;
     }
 
     @PostMapping("/payments")
     public void processPayment(@RequestBody PaymentRequest paymentRequest) {
-        paymentProcessorUseCase.processPayment(paymentRequest);
+        workService.doWork(() -> paymentProcessorUseCase.processPayment(paymentRequest));
     }
 
     @GetMapping("/payments-summary")

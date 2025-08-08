@@ -8,8 +8,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.cloud.client.circuitbreaker.CircuitBreakerFactory;
 import org.springframework.stereotype.Repository;
 
-import java.util.Optional;
-
 @Slf4j
 @SuppressWarnings("ALL")
 @Repository
@@ -29,18 +27,18 @@ public class PaymentGatewayAdapter implements PaymentGatewayPort {
     }
 
     @Override
-    public Optional<String> processPayment(PaymentRequest paymentRequest) {
+    public String processPayment(PaymentRequest paymentRequest) {
         try {
-            return Optional.of(circuitBreakerFactory.create("paymentCircuitBreaker").run(
+            return circuitBreakerFactory.create("paymentCircuitBreaker").run(
                     () -> processPaymentDefault(paymentRequest),
                     throwable -> processPaymentFallback(throwable, paymentRequest)
-            ));
+            );
         } catch (PaymentAlreadyProcessedException e) {
             log.warn("Payment already processed for correlation ID: {}", paymentRequest.getCorrelationId());
-            throw e; // Re-throw the exception to be handled by the circuit breaker
+            throw e;
         } catch (Exception e) {
             log.error("Error processing payment: {}", e.getMessage());
-            return Optional.empty();
+            throw e;
         }
     }
 
