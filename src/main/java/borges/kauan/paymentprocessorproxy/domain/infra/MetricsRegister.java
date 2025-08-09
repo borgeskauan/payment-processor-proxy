@@ -21,6 +21,9 @@ public class MetricsRegister {
     private final Counter paymentProcessedSucessfullyCounter;
     private final Counter paymentDroppedCounter;
 
+    private final DistributionSummary queueSizeStats;
+    private final Long queueSize = 0L;
+
     public MetricsRegister(MeterRegistry meterRegistry) {
         this.meterRegistry = meterRegistry;
 
@@ -44,6 +47,10 @@ public class MetricsRegister {
                 .builder("payment.dropped")
                 .description("Number of payments dropped due to processing errors")
                 .register(meterRegistry);
+
+        this.queueSizeStats = DistributionSummary.builder("executor.queue.stats")
+                .description("Stats of the executor queue size")
+                .register(meterRegistry);
     }
 
     public Timer createTimer(String name) {
@@ -64,6 +71,7 @@ public class MetricsRegister {
 
     public void recordEnqueue(String messageId) {
         enqueueTimestamps.put(messageId, System.currentTimeMillis());
+//        queueSizeStats.record(1);
     }
 
     public void recordProcessingStart(String messageId) {

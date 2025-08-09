@@ -31,9 +31,9 @@ public class MetricsFormattedOutputService {
         }
 
         // 2. Processing time metrics
-        Timer processingTime = meterRegistry.find("request.processing.time").timer();
+        Timer processingTime = meterRegistry.find("work.processing.time").timer();
         if (processingTime != null) {
-            metrics.put("request_processing_time", createTimerMap(processingTime));
+            metrics.put("work_processing_time", createTimerMap(processingTime));
         }
 
         Timer paymentProcessorTime = meterRegistry.find("payment.processor.time").timer();
@@ -148,11 +148,5 @@ public class MetricsFormattedOutputService {
         Map<String, Object> gaugeMap = new LinkedHashMap<>();
         gaugeMap.put("value", gauge.value());
         return gaugeMap;
-    }
-
-    private Map<String, Object> createCounterMap(Counter counter) {
-        Map<String, Object> counterMap = new LinkedHashMap<>();
-        counterMap.put("count", counter.count());
-        return counterMap;
     }
 }

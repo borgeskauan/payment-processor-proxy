@@ -30,21 +30,30 @@ public class PaymentProcessorService implements PaymentProcessorUseCase {
 
     @Override
     public void processPayment(PaymentRequest paymentRequest) {
-        Instant timestamp = Instant.now().truncatedTo(ChronoUnit.MILLIS);
-        var requestWithTimestamp = paymentRequest.withRequestedAt(timestamp);
+        Instant truncatedTimestamp = paymentRequest.getRequestedAt().truncatedTo(ChronoUnit.MILLIS);
+        var requestWithTimestamp = paymentRequest.withRequestedAt(truncatedTimestamp);
 
         var payment = Payment.builder()
                 .correlationId(paymentRequest.getCorrelationId())
                 .amount(paymentRequest.getAmount())
-                .timestamp(timestamp)
+                .timestamp(truncatedTimestamp)
                 .build();
 
-        String processedBy = paymentGatewayPort.processPayment(requestWithTimestamp);
-        paymentRepositoryPort.savePayment(
-                payment.withProcessedBy(processedBy)
-        );
+        try {
+            String processedBy = paymentGatewayPort.processPayment(requestWithTimestamp);
+            paymentRepositoryPort.savePayment(
+                    payment.withProcessedBy(processedBy)
+            );
 
-        metricsRegister.countPaymentProcessedSuccessfully();
+            metricsRegister.countPaymentProcessedSuccessfully();
+
+        } catch (Exception e) {
+            log.error("Error processing payment with correlationId '{}': {}", paymentRequest.getCorrelationId(), e.getMessage());
+
+            metricsRegister.countPaymentDropped();
+
+            throw new RuntimeException("Error processing payment with correlationId " + paymentRequest.getCorrelationId(), e);
+        }
     }
 
     @Override

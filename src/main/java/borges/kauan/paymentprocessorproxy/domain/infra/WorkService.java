@@ -12,17 +12,11 @@ public class WorkService {
     private final Timer timer;
 
     public WorkService(MetricsRegister metricsRegister) {
-        this.timer = metricsRegister.createTimer("request.processing.time");
+        this.timer = metricsRegister.createTimer("work.processing.time");
     }
 
     @Async("workExecutor") // use the custom executor
     public void doWork(Runnable task) {
-        timer.record(() -> {
-            log.info("Starting work in thread: {}", Thread.currentThread().getName());
-
-            task.run();
-
-            log.info("Work done by {}", Thread.currentThread().getName());
-        });
+        timer.record(task);
     }
 }

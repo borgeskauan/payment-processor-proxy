@@ -1,9 +1,9 @@
 package borges.kauan.paymentprocessorproxy.adapter.input;
 
 import borges.kauan.paymentprocessorproxy.domain.infra.MetricsRegister;
+import borges.kauan.paymentprocessorproxy.domain.infra.WorkService;
 import borges.kauan.paymentprocessorproxy.domain.payment.dto.PaymentRequest;
 import borges.kauan.paymentprocessorproxy.domain.payment.dto.ProcessedPaymentsSummaryResponse;
-import borges.kauan.paymentprocessorproxy.domain.infra.WorkService;
 import borges.kauan.paymentprocessorproxy.port.input.PaymentProcessorUseCase;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
@@ -28,12 +28,14 @@ public class PaymentProcessorController {
 
     @PostMapping("/payments")
     public void processPayment(@RequestBody PaymentRequest paymentRequest) {
+        var paymentRequestWithTimestamp = paymentRequest.withRequestedAt(Instant.now());
+
         workService.doWork(() -> {
-            metricsRegister.recordProcessingStart(paymentRequest.getCorrelationId());
-            paymentProcessorUseCase.processPayment(paymentRequest);
+            metricsRegister.recordProcessingStart(paymentRequestWithTimestamp.getCorrelationId());
+            paymentProcessorUseCase.processPayment(paymentRequestWithTimestamp);
         });
 
-        metricsRegister.recordEnqueue(paymentRequest.getCorrelationId());
+        metricsRegister.recordEnqueue(paymentRequestWithTimestamp.getCorrelationId());
         metricsRegister.countPaymentReceived();
     }
 
