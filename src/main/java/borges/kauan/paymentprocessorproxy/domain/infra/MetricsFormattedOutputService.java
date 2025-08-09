@@ -41,12 +41,29 @@ public class MetricsFormattedOutputService {
             metrics.put("payment_processor_time", createTimerMap(paymentProcessorTime));
         }
 
+        // 3. Redis metrics - grouped under "redis"
+        Map<String, Object> redisMetrics = new LinkedHashMap<>();
+
         Timer redisAddTime = meterRegistry.find("redis.payment.add.time").timer();
         if (redisAddTime != null) {
-            metrics.put("redis_add_time", createTimerMap(redisAddTime));
+            redisMetrics.put("add_time", createTimerMap(redisAddTime));
         }
 
-        // 3. Thread pool metrics - grouped under "threads"
+        Timer calculateSummaryTime = meterRegistry.find("redis.payment.summary.calculate.time").timer();
+        if (calculateSummaryTime != null) {
+            redisMetrics.put("calculate_summary_time", createTimerMap(calculateSummaryTime));
+        }
+
+        Timer queryPaymentsTime = meterRegistry.find("redis.payment.query.time").timer();
+        if (queryPaymentsTime != null) {
+            redisMetrics.put("query_payments_time", createTimerMap(queryPaymentsTime));
+        }
+
+        if (!redisMetrics.isEmpty()) {
+            metrics.put("redis", redisMetrics);
+        }
+
+        // 4. Thread pool metrics - grouped under "threads"
         Map<String, Object> threadMetrics = new LinkedHashMap<>();
 
         Gauge poolSize = meterRegistry.find("executor.pool.size").gauge();
@@ -68,7 +85,7 @@ public class MetricsFormattedOutputService {
             metrics.put("threads", threadMetrics);
         }
 
-        // 4. Payment metrics - grouped under "payments"
+        // 5. Payment metrics - grouped under "payments"
         Map<String, Object> paymentMetrics = new LinkedHashMap<>();
 
         Counter paymentReceived = meterRegistry.find("payment.received").counter();

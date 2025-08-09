@@ -11,50 +11,46 @@ import org.springframework.stereotype.Repository;
 
 import java.math.BigDecimal;
 import java.time.Instant;
-import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 @Repository
 public class PaymentDatabaseAdapter implements PaymentRepositoryPort {
 
     private final RedisTemplate<String, String> redisTemplate;
-    private final Timer timer;
+    private final Timer addPaymentTimer;
+
+    private final Timer calculateSummaryTime;
+    private final Timer queryPaymentsFromRedisTime;
 
     public PaymentDatabaseAdapter(RedisTemplate<String, String> redisTemplate, MetricsRegister metricsRegister) {
         this.redisTemplate = redisTemplate;
-        this.timer = metricsRegister.createTimer("redis.payment.add.time");
+        this.addPaymentTimer = metricsRegister.createTimer("redis.payment.add.time");
+        this.calculateSummaryTime = metricsRegister.createTimer("redis.payment.summary.calculate.time");
+        this.queryPaymentsFromRedisTime = metricsRegister.createTimer("redis.payment.query.time");
     }
 
     @Override
     public void savePayment(Payment payment) {
-        timer.record(() -> savePaymentInternal(payment));
+        addPaymentTimer.record(() -> savePaymentInternal(payment));
     }
 
     private void savePaymentInternal(Payment payment) {
-        String key = "payment:" + payment.getId();
-        redisTemplate.opsForHash().put(key, "id", payment.getId());
-        redisTemplate.opsForHash().put(key, "correlationId", payment.getCorrelationId());
-        redisTemplate.opsForHash().put(key, "processedBy", payment.getProcessedBy());
-        redisTemplate.opsForHash().put(key, "amount", payment.getAmount().toString());
-        redisTemplate.opsForHash().put(key, "timestamp", payment.getTimestamp().toString());
-
-        // Add to sorted set for time-based queries
-        redisTemplate.opsForZSet().add("payments:timestamps", payment.getId(),
-                payment.getTimestamp().toEpochMilli());
+        redisTemplate.opsForZSet().add(
+                "payments:timestamps:" + payment.getProcessedBy(),
+                payment.getId() + ":" + payment.getAmount().toString(),
+                payment.getTimestamp().toEpochMilli()
+        );
     }
 
     @Override
     public ProcessedPaymentsSummaryResponse getPaymentsSummary(Instant from, Instant to) {
-        List<Payment> filteredPayments = filterPayments(from, to);
+        return calculateSummaryTime.record(() -> getPaymentsSummaryInternal(from, to));
+    }
 
-        Map<String, List<Payment>> groupedPayments = filteredPayments.stream()
-                .collect(Collectors.groupingBy(Payment::getProcessedBy));
-
-        var defaultSummary = buildSummary(groupedPayments.get("default"));
-        var fallbackSummary = buildSummary(groupedPayments.get("fallback"));
+    private ProcessedPaymentsSummaryResponse getPaymentsSummaryInternal(Instant from, Instant to) {
+        var defaultSummary = buildSummary(fiterPayments(from, to, "default"));
+        var fallbackSummary = buildSummary(fiterPayments(from, to, "fallback"));
 
         return ProcessedPaymentsSummaryResponse.builder()
                 .defaultSummary(defaultSummary)
@@ -70,48 +66,33 @@ public class PaymentDatabaseAdapter implements PaymentRepositoryPort {
                 .flushDb();
     }
 
-    private List<Payment> filterPayments(Instant from, Instant to) {
+    private FilteredCalculationResult fiterPayments(Instant from, Instant to, String processedBy) {
         long fromMillis = from == null ? Long.MIN_VALUE : from.toEpochMilli();
         long toMillis = to == null ? Long.MAX_VALUE : to.toEpochMilli();
 
-        Set<String> paymentIds = redisTemplate.opsForZSet().rangeByScore(
-                "payments:timestamps", fromMillis, toMillis);
+        return queryPaymentsFromRedisTime.record(() -> {
+            Set<String> paymentAmounts = redisTemplate.opsForZSet().rangeByScore(
+                    "payments:timestamps:" + processedBy, fromMillis, toMillis);
 
-        if (paymentIds == null || paymentIds.isEmpty()) {
-            return List.of();
-        }
+            if (paymentAmounts == null || paymentAmounts.isEmpty()) {
+                return new FilteredCalculationResult(0L, BigDecimal.ZERO);
+            }
 
-        return paymentIds.stream()
-                .map(id -> {
-                    Map<Object, Object> entry = redisTemplate.opsForHash().entries("payment:" + id);
-                    return Payment.builder()
-                            .id((String) entry.get("id"))
-                            .correlationId((String) entry.get("correlationId"))
-                            .processedBy((String) entry.get("processedBy"))
-                            .amount(new BigDecimal((String) entry.get("amount")))
-                            .timestamp(Instant.parse((String) entry.get("timestamp")))
-                            .build();
-                })
-                .collect(Collectors.toList());
+            var sum = paymentAmounts.stream()
+                    .map(value -> new BigDecimal(value.split(":")[1]))
+                    .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+            return new FilteredCalculationResult((long) paymentAmounts.size(), sum);
+        });
     }
 
-    private ProcessedPaymentsSummary buildSummary(List<Payment> payments) {
-        if (payments == null || payments.isEmpty()) {
-            return ProcessedPaymentsSummary.builder()
-                    .totalAmount(BigDecimal.valueOf(0.0))
-                    .totalRequests(0L)
-                    .build();
-        }
-
-        BigDecimal totalAmount = payments.stream()
-                .map(Payment::getAmount)
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
-
-        long totalCount = payments.size();
-
+    private ProcessedPaymentsSummary buildSummary(FilteredCalculationResult calculationResult) {
         return ProcessedPaymentsSummary.builder()
-                .totalAmount(totalAmount)
-                .totalRequests(totalCount)
+                .totalAmount(calculationResult.totalAmount())
+                .totalRequests(calculationResult.size())
                 .build();
+    }
+
+    private record FilteredCalculationResult(Long size, BigDecimal totalAmount) {
     }
 }
