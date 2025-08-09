@@ -38,7 +38,7 @@ public class PaymentDatabaseAdapter implements PaymentRepositoryPort {
     private void savePaymentInternal(Payment payment) {
         redisTemplate.opsForZSet().add(
                 "payments:timestamps:" + payment.getProcessedBy(),
-                payment.getId() + ":" + payment.getAmount().toString(),
+                payment.getCorrelationId() + ":" + payment.getAmount().toString(),
                 payment.getTimestamp().toEpochMilli()
         );
     }

@@ -11,7 +11,6 @@ import java.time.Instant;
 @With
 @Builder
 public class Payment {
-    private String id;
     private String correlationId;
     private String processedBy;
 

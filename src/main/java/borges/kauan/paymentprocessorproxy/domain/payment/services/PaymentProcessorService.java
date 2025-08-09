@@ -11,7 +11,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
-import java.util.UUID;
+import java.time.temporal.ChronoUnit;
 
 @Slf4j
 @Service
@@ -30,20 +30,19 @@ public class PaymentProcessorService implements PaymentProcessorUseCase {
 
     @Override
     public void processPayment(PaymentRequest paymentRequest) {
-        Instant timestamp = Instant.now();
+        Instant timestamp = Instant.now().truncatedTo(ChronoUnit.MILLIS);
         var requestWithTimestamp = paymentRequest.withRequestedAt(timestamp);
 
-        String processedBy = paymentGatewayPort.processPayment(requestWithTimestamp);
-
         var payment = Payment.builder()
-                .id(UUID.randomUUID().toString())
                 .correlationId(paymentRequest.getCorrelationId())
                 .amount(paymentRequest.getAmount())
-                .processedBy(processedBy)
                 .timestamp(timestamp)
                 .build();
 
-        paymentRepositoryPort.savePayment(payment);
+        String processedBy = paymentGatewayPort.processPayment(requestWithTimestamp);
+        paymentRepositoryPort.savePayment(
+                payment.withProcessedBy(processedBy)
+        );
 
         metricsRegister.countPaymentProcessedSuccessfully();
     }
