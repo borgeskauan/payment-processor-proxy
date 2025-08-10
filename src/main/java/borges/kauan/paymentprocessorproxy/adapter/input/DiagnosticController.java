@@ -30,6 +30,6 @@ public class DiagnosticController {
 
     @PostMapping("/stop")
     public void stop() {
-        workExecutor.shutdown();
+//        workExecutor.shutdown();
     }
 }

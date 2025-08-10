@@ -43,10 +43,24 @@ public class PaymentProcessorController {
         return paymentProcessorUseCase.getPaymentsSummary(from, to);
     }
 
+    @GetMapping("/payments-summary/standalone")
+    public ProcessedPaymentsSummaryResponse getStandalonePaymentsSummary(@RequestParam(required = false) Instant from,
+                                                                         @RequestParam(required = false) Instant to) {
+        log.info("Fetching standalone payments summary from {} to {}", from, to);
+
+        return paymentProcessorUseCase.getStandalonePaymentsSummary(from, to);
+    }
+
     @PostMapping("/purge-payments")
     public void purgePayments() {
         log.info("Purging all payments");
 
         paymentProcessorUseCase.purgePayments();
+    }
+
+    @PostMapping("purge-payments/standalone")
+    public void purgeStandalonePayments() {
+        log.info("Purging standalone payments");
+        paymentProcessorUseCase.purgeStandalonePayments();
     }
 }

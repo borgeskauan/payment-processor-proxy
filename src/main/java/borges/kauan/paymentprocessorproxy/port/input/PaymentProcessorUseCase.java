@@ -11,5 +11,9 @@ public interface PaymentProcessorUseCase {
 
     ProcessedPaymentsSummaryResponse getPaymentsSummary(Instant from, Instant to);
 
+    ProcessedPaymentsSummaryResponse getStandalonePaymentsSummary(Instant from, Instant to);
+
     void purgePayments();
+
+    void purgeStandalonePayments();
 }

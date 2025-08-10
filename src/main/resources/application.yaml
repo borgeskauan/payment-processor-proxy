@@ -2,16 +2,14 @@ spring:
   application:
     name: payment-processor-proxy
 
-  data:
-    redis:
-      host: ${REDIS_HOST:localhost}
-      port: ${REDIS_PORT:6379}
-
 payment:
   gateway:
     url: ${PAYMENT_GATEWAY_DEFAULT:http://localhost:8001}
     fallback:
       url: ${PAYMENT_GATEWAY_FALLBACK:http://localhost:8002}
+
+summary-service:
+  url: ${SUMMARY_SERVICE_URL:http://localhost:8080}
 
 management:
   endpoints:

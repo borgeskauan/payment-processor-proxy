@@ -62,7 +62,17 @@ public class PaymentProcessorService implements PaymentProcessorUseCase {
     }
 
     @Override
+    public ProcessedPaymentsSummaryResponse getStandalonePaymentsSummary(Instant from, Instant to) {
+        return paymentRepositoryPort.getStandalonePaymentsSummary(from, to);
+    }
+
+    @Override
     public void purgePayments() {
         paymentRepositoryPort.purgePayments();
+    }
+
+    @Override
+    public void purgeStandalonePayments() {
+        paymentRepositoryPort.purgeStandalonePayments();
     }
 }
