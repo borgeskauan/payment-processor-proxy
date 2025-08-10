@@ -6,16 +6,10 @@ import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Timer;
 import org.springframework.stereotype.Service;
 
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-
 @Service
 public class MetricsRegister {
 
     private final MeterRegistry meterRegistry;
-
-    private final DistributionSummary queueDelaySummary;
-    private final Map<String, Long> enqueueTimestamps = new ConcurrentHashMap<>();
 
     private final Counter paymentReceivedCounter;
     private final Counter paymentProcessedSucessfullyCounter;
@@ -26,12 +20,6 @@ public class MetricsRegister {
 
     public MetricsRegister(MeterRegistry meterRegistry) {
         this.meterRegistry = meterRegistry;
-
-        this.queueDelaySummary = DistributionSummary
-                .builder("queue.processing.delay")
-                .description("Time between message enqueue and processing start")
-                .baseUnit("seconds")
-                .register(meterRegistry);
 
         this.paymentReceivedCounter = Counter
                 .builder("payment.received")
@@ -67,18 +55,5 @@ public class MetricsRegister {
 
     public void countPaymentDropped() {
         paymentDroppedCounter.increment();
-    }
-
-    public void recordEnqueue(String messageId) {
-        enqueueTimestamps.put(messageId, System.currentTimeMillis());
-//        queueSizeStats.record(1);
-    }
-
-    public void recordProcessingStart(String messageId) {
-        Long enqueueTime = enqueueTimestamps.remove(messageId);
-        if (enqueueTime != null) {
-            long delay = (System.currentTimeMillis() - enqueueTime) / 1000;
-            queueDelaySummary.record(delay);
-        }
     }
 }

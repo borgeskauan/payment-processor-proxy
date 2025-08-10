@@ -20,11 +20,6 @@ public class MetricsFormattedOutputService {
         Map<String, Map<String, Object>> metrics = new LinkedHashMap<>();
 
         // 1. Queue metrics
-        DistributionSummary queueDelay = meterRegistry.find("queue.processing.delay").summary();
-        if (queueDelay != null) {
-            metrics.put("queue_processing_delay", createDistributionSummaryMap(queueDelay));
-        }
-
         Gauge queueSize = meterRegistry.find("executor.queued").gauge();
         if (queueSize != null) {
             metrics.put("queue_size", createGaugeMap(queueSize));
@@ -52,11 +47,6 @@ public class MetricsFormattedOutputService {
         Timer calculateSummaryTime = meterRegistry.find("redis.payment.summary.calculate.time").timer();
         if (calculateSummaryTime != null) {
             redisMetrics.put("calculate_summary_time", createTimerMap(calculateSummaryTime));
-        }
-
-        Timer queryPaymentsTime = meterRegistry.find("redis.payment.query.time").timer();
-        if (queryPaymentsTime != null) {
-            redisMetrics.put("query_payments_time", createTimerMap(queryPaymentsTime));
         }
 
         if (!redisMetrics.isEmpty()) {
@@ -125,23 +115,6 @@ public class MetricsFormattedOutputService {
         }
 
         return timerMap;
-    }
-
-    private Map<String, Object> createDistributionSummaryMap(DistributionSummary summary) {
-        ValueAtPercentile[] percentiles = summary.takeSnapshot().percentileValues();
-        Map<String, Object> summaryMap = new LinkedHashMap<>();
-        summaryMap.put("count", summary.count());
-        summaryMap.put("total_seconds", summary.totalAmount());
-        summaryMap.put("mean", summary.mean());
-        summaryMap.put("max", summary.max());
-
-        // Add percentiles from snapshot
-        for (ValueAtPercentile percentile : percentiles) {
-            String key = "p" + (int) (percentile.percentile() * 100);
-            summaryMap.put(key, percentile.value());
-        }
-
-        return summaryMap;
     }
 
     private Map<String, Object> createGaugeMap(Gauge gauge) {

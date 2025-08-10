@@ -30,12 +30,8 @@ public class PaymentProcessorController {
     public void processPayment(@RequestBody PaymentRequest paymentRequest) {
         var paymentRequestWithTimestamp = paymentRequest.withRequestedAt(Instant.now());
 
-        workService.doWork(() -> {
-            metricsRegister.recordProcessingStart(paymentRequestWithTimestamp.getCorrelationId());
-            paymentProcessorUseCase.processPayment(paymentRequestWithTimestamp);
-        });
+        workService.doWork(() -> paymentProcessorUseCase.processPayment(paymentRequestWithTimestamp));
 
-        metricsRegister.recordEnqueue(paymentRequestWithTimestamp.getCorrelationId());
         metricsRegister.countPaymentReceived();
     }
 

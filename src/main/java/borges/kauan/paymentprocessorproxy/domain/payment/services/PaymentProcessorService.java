@@ -30,7 +30,7 @@ public class PaymentProcessorService implements PaymentProcessorUseCase {
 
     @Override
     public void processPayment(PaymentRequest paymentRequest) {
-        Instant truncatedTimestamp = paymentRequest.getRequestedAt().truncatedTo(ChronoUnit.MILLIS);
+        Instant truncatedTimestamp = paymentRequest.getRequestedAt().truncatedTo(ChronoUnit.MICROS);
         var requestWithTimestamp = paymentRequest.withRequestedAt(truncatedTimestamp);
 
         var payment = Payment.builder()

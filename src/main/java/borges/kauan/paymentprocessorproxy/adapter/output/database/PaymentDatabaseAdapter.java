@@ -21,13 +21,11 @@ public class PaymentDatabaseAdapter implements PaymentRepositoryPort {
     private final Timer addPaymentTimer;
 
     private final Timer calculateSummaryTime;
-    private final Timer queryPaymentsFromRedisTime;
 
     public PaymentDatabaseAdapter(RedisTemplate<String, String> redisTemplate, MetricsRegister metricsRegister) {
         this.redisTemplate = redisTemplate;
-        this.addPaymentTimer = metricsRegister.createTimer("redis.payment.add.time");
-        this.calculateSummaryTime = metricsRegister.createTimer("redis.payment.summary.calculate.time");
-        this.queryPaymentsFromRedisTime = metricsRegister.createTimer("redis.payment.query.time");
+        this.addPaymentTimer = metricsRegister.createTimer("ddredis.payment.add.time");
+        this.calculateSummaryTime = metricsRegister.createTimer("ddredis.payment.summary.calculate.time");
     }
 
     @Override
@@ -70,20 +68,18 @@ public class PaymentDatabaseAdapter implements PaymentRepositoryPort {
         long fromMillis = from == null ? Long.MIN_VALUE : from.toEpochMilli();
         long toMillis = to == null ? Long.MAX_VALUE : to.toEpochMilli();
 
-        return queryPaymentsFromRedisTime.record(() -> {
-            Set<String> paymentAmounts = redisTemplate.opsForZSet().rangeByScore(
-                    "payments:timestamps:" + processedBy, fromMillis, toMillis);
+        Set<String> paymentAmounts = redisTemplate.opsForZSet().rangeByScore(
+                "payments:timestamps:" + processedBy, fromMillis, toMillis);
 
-            if (paymentAmounts == null || paymentAmounts.isEmpty()) {
-                return new FilteredCalculationResult(0L, BigDecimal.ZERO);
-            }
+        if (paymentAmounts == null || paymentAmounts.isEmpty()) {
+            return new FilteredCalculationResult(0L, BigDecimal.ZERO);
+        }
 
-            var sum = paymentAmounts.stream()
-                    .map(value -> new BigDecimal(value.split(":")[1]))
-                    .reduce(BigDecimal.ZERO, BigDecimal::add);
+        var sum = paymentAmounts.stream()
+                .map(value -> new BigDecimal(value.split(":")[1]))
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
 
-            return new FilteredCalculationResult((long) paymentAmounts.size(), sum);
-        });
+        return new FilteredCalculationResult((long) paymentAmounts.size(), sum);
     }
 
     private ProcessedPaymentsSummary buildSummary(FilteredCalculationResult calculationResult) {
