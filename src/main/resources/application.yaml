@@ -11,6 +11,10 @@ payment:
 summary-service:
   url: ${SUMMARY_SERVICE_URL:http://localhost:8080}
 
+unix:
+  socket:
+    path: ${SERVER_ADDRESS_URL:/tmp/spring-boot.sock}
+
 management:
   endpoints:
     web:
