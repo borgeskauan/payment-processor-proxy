@@ -1,4 +1,4 @@
-package borges.kauan.paymentprocessorproxy.adapter.output.gateway;
+package borges.kauan.paymentprocessorproxy.adapter.output.gateway.dto;
 
 import lombok.Data;
 

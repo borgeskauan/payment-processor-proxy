@@ -1,6 +1,9 @@
 spring:
   application:
     name: payment-processor-proxy
+  jackson:
+    serialization:
+          write-dates-as-timestamps: false
 
 payment:
   gateway:
@@ -9,7 +12,7 @@ payment:
       url: ${PAYMENT_GATEWAY_FALLBACK:http://localhost:8002}
 
 summary-service:
-  url: ${SUMMARY_SERVICE_URL:http://localhost:8080}
+  url: ${SUMMARY_SERVICE_URL:/tmp/spring-boot.sock}
 
 unix:
   socket:
