@@ -9,6 +9,8 @@ import io.micrometer.core.instrument.Timer;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Primary;
 import org.springframework.stereotype.Repository;
+import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Schedulers;
 
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -16,7 +18,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentSkipListMap;
 
@@ -57,7 +58,7 @@ public class InMemoryPaymentDatabaseAdapter implements PaymentRepositoryPort {
     }
 
     @Override
-    public ProcessedPaymentsSummaryResponse getPaymentsSummary(Instant from, Instant to) {
+    public Mono<ProcessedPaymentsSummaryResponse> getPaymentsSummary(Instant from, Instant to) {
         return calculateSummaryTime.record(() -> getMergedSummary(from, to));
     }
 
@@ -66,23 +67,24 @@ public class InMemoryPaymentDatabaseAdapter implements PaymentRepositoryPort {
         return calculateLocalSummary(from, to);
     }
 
-    private ProcessedPaymentsSummaryResponse getMergedSummary(Instant from, Instant to) {
-        CompletableFuture<ProcessedPaymentsSummaryResponse> remoteFuture = CompletableFuture.supplyAsync(() ->
+    private Mono<ProcessedPaymentsSummaryResponse> getMergedSummary(Instant from, Instant to) {
+        Mono<ProcessedPaymentsSummaryResponse> remoteMono = Mono.fromCallable(() ->
                 callRemoteSummaryService(from, to)
-        );
+        ).subscribeOn(Schedulers.boundedElastic());  // Offload blocking call
 
-        CompletableFuture<ProcessedPaymentsSummaryResponse> localFuture = CompletableFuture.supplyAsync(() ->
+        Mono<ProcessedPaymentsSummaryResponse> localMono = Mono.fromCallable(() ->
                 calculateLocalSummary(from, to)
-        );
+        ).subscribeOn(Schedulers.boundedElastic());  // Offload blocking call if needed
 
-        return localFuture.thenCombine(remoteFuture, this::mergeSummaries)
-                .join();
+        return Mono.zip(localMono, remoteMono, this::mergeSummaries);
     }
 
+    // TODO: Convert return type to mono
     private ProcessedPaymentsSummaryResponse callRemoteSummaryService(Instant from, Instant to) {
         return summaryRepositoryPort.getPaymentsSummary(from, to);
     }
 
+    // TODO: Convert return type to mono
     private ProcessedPaymentsSummaryResponse calculateLocalSummary(Instant from, Instant to) {
         var defaultSummary = buildSummary(filterPayments(from, to, "default"));
         var fallbackSummary = buildSummary(filterPayments(from, to, "fallback"));
@@ -111,10 +113,10 @@ public class InMemoryPaymentDatabaseAdapter implements PaymentRepositoryPort {
     }
 
     @Override
-    public void purgePayments() {
+    public Mono<Void> purgePayments() {
         payments.clear();
 
-        summaryRepositoryPort.purgePayments();
+        return summaryRepositoryPort.purgePayments();
     }
 
     @Override

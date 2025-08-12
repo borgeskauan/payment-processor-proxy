@@ -18,3 +18,5 @@ curl --unix-socket /tmp/spring-boot.sock -X POST   http://localhost/payments   -
 }'
 
 curl --unix-socket /tmp/spring-boot.sock -X GET   http://localhost/payments-summary
+
+curl --unix-socket /home/tyrael/CentralHub/Studies/rinha-backend/payment-processor-proxy/infra/sockets/app1.sock -X GET   http://localhost/diagnostics

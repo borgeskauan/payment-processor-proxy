@@ -2,17 +2,18 @@ package borges.kauan.paymentprocessorproxy.port.output;
 
 import borges.kauan.paymentprocessorproxy.domain.payment.dto.ProcessedPaymentsSummaryResponse;
 import borges.kauan.paymentprocessorproxy.domain.payment.entity.Payment;
+import reactor.core.publisher.Mono;
 
 import java.time.Instant;
 
 public interface PaymentRepositoryPort {
     void savePayment(Payment paymentRequest);
 
-    ProcessedPaymentsSummaryResponse getPaymentsSummary(Instant from, Instant to);
+    Mono<ProcessedPaymentsSummaryResponse> getPaymentsSummary(Instant from, Instant to);
 
     ProcessedPaymentsSummaryResponse getStandalonePaymentsSummary(Instant from, Instant to);
 
-    void purgePayments();
+    Mono<Void> purgePayments();
 
     void purgeStandalonePayments();
 }

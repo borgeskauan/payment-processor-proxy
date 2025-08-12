@@ -2,6 +2,7 @@ package borges.kauan.paymentprocessorproxy.domain.infra;
 
 import io.micrometer.core.instrument.*;
 import io.micrometer.core.instrument.distribution.ValueAtPercentile;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.util.LinkedHashMap;
@@ -12,12 +13,17 @@ import java.util.concurrent.TimeUnit;
 public class MetricsFormattedOutputService {
     private final MeterRegistry meterRegistry;
 
+    @Value("${unix.socket.path}")
+    private String unixSocketPath;
+
     public MetricsFormattedOutputService(MeterRegistry meterRegistry) {
         this.meterRegistry = meterRegistry;
     }
 
     public Map<String, Map<String, Object>> getDetailedMetrics() {
         Map<String, Map<String, Object>> metrics = new LinkedHashMap<>();
+
+        metrics.put("socket_path", Map.of("value", unixSocketPath));
 
         // 1. Queue metrics
         Gauge queueSize = meterRegistry.find("executor.queued").gauge();

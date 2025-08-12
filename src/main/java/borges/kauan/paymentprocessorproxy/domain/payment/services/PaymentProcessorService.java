@@ -9,6 +9,7 @@ import borges.kauan.paymentprocessorproxy.port.output.PaymentGatewayPort;
 import borges.kauan.paymentprocessorproxy.port.output.PaymentRepositoryPort;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import reactor.core.publisher.Mono;
 
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
@@ -57,7 +58,7 @@ public class PaymentProcessorService implements PaymentProcessorUseCase {
     }
 
     @Override
-    public ProcessedPaymentsSummaryResponse getPaymentsSummary(Instant from, Instant to) {
+    public Mono<ProcessedPaymentsSummaryResponse> getPaymentsSummary(Instant from, Instant to) {
         return paymentRepositoryPort.getPaymentsSummary(from, to);
     }
 
@@ -67,8 +68,8 @@ public class PaymentProcessorService implements PaymentProcessorUseCase {
     }
 
     @Override
-    public void purgePayments() {
-        paymentRepositoryPort.purgePayments();
+    public Mono<Void> purgePayments() {
+        return paymentRepositoryPort.purgePayments();
     }
 
     @Override

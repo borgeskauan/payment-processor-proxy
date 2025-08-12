@@ -13,9 +13,11 @@ import java.time.Instant;
 public class SummaryUdsAdapter implements SummaryRepositoryPort {
 
     private final HttpClient httpClient;
+    private final ObjectMapper mapper;
 
     public SummaryUdsAdapter(@Qualifier("summaryUdsHttpClient") HttpClient httpClient) {
         this.httpClient = httpClient;
+        this.mapper = new ObjectMapper();
     }
 
     public ProcessedPaymentsSummaryResponse getPaymentsSummary(Instant from, Instant to) {
@@ -30,7 +32,7 @@ public class SummaryUdsAdapter implements SummaryRepositoryPort {
                 .block();
 
         try {
-            return new ObjectMapper().readValue(json, ProcessedPaymentsSummaryResponse.class);
+            return mapper.readValue(json, ProcessedPaymentsSummaryResponse.class);
         } catch (Exception e) {
             throw new RuntimeException("Failed to parse JSON response", e);
         }

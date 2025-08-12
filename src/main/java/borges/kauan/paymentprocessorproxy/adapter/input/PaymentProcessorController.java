@@ -7,6 +7,7 @@ import borges.kauan.paymentprocessorproxy.domain.payment.dto.ProcessedPaymentsSu
 import borges.kauan.paymentprocessorproxy.port.input.PaymentProcessorUseCase;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
+import reactor.core.publisher.Mono;
 
 import java.time.Instant;
 
@@ -27,22 +28,25 @@ public class PaymentProcessorController {
     }
 
     @PostMapping("/payments")
-    public void processPayment(@RequestBody PaymentRequest paymentRequest) {
+    public Mono<Void> processPayment(@RequestBody PaymentRequest paymentRequest) {
         var paymentRequestWithTimestamp = paymentRequest.withRequestedAt(Instant.now());
 
         workService.doWork(() -> paymentProcessorUseCase.processPayment(paymentRequestWithTimestamp));
 
         metricsRegister.countPaymentReceived();
+
+        return Mono.empty();
     }
 
     @GetMapping("/payments-summary")
-    public ProcessedPaymentsSummaryResponse getPaymentsSummary(@RequestParam(required = false) Instant from,
+    public Mono<ProcessedPaymentsSummaryResponse> getPaymentsSummary(@RequestParam(required = false) Instant from,
                                                                @RequestParam(required = false) Instant to) {
         log.info("Fetching payments summary from {} to {}", from, to);
 
         return paymentProcessorUseCase.getPaymentsSummary(from, to);
     }
 
+    // TODO: Convert return type to mono
     @GetMapping("/payments-summary/standalone")
     public ProcessedPaymentsSummaryResponse getStandalonePaymentsSummary(@RequestParam(required = false) Instant from,
                                                                          @RequestParam(required = false) Instant to) {
@@ -52,10 +56,10 @@ public class PaymentProcessorController {
     }
 
     @PostMapping("/purge-payments")
-    public void purgePayments() {
+    public Mono<Void> purgePayments() {
         log.info("Purging all payments");
 
-        paymentProcessorUseCase.purgePayments();
+        return paymentProcessorUseCase.purgePayments();
     }
 
     @PostMapping("purge-payments/standalone")
