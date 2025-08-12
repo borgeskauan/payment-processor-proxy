@@ -15,7 +15,7 @@ public class AsyncConfig {
     public ThreadPoolTaskExecutor internalExecutor() {
         ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
 
-        executor.setCorePoolSize(4);
+        executor.setCorePoolSize(3);
         executor.setThreadNamePrefix("WorkExecutor-");
         executor.setPrestartAllCoreThreads(true);
 

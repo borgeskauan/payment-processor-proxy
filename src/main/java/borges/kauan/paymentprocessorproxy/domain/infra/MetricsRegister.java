@@ -42,7 +42,9 @@ public class MetricsRegister {
     }
 
     public Timer createTimer(String name) {
-        return meterRegistry.timer(name);
+        return Timer.builder(name)
+                .publishPercentiles(0.5, 0.95, 0.99)
+                .register(meterRegistry);
     }
 
     public void countPaymentReceived() {
