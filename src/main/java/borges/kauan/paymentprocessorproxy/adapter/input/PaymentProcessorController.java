@@ -1,6 +1,5 @@
 package borges.kauan.paymentprocessorproxy.adapter.input;
 
-import borges.kauan.paymentprocessorproxy.domain.infra.MetricsRegister;
 import borges.kauan.paymentprocessorproxy.domain.infra.WorkService;
 import borges.kauan.paymentprocessorproxy.domain.payment.dto.PaymentRequest;
 import borges.kauan.paymentprocessorproxy.domain.payment.dto.ProcessedPaymentsSummaryResponse;
@@ -15,14 +14,11 @@ import java.time.Instant;
 @RestController
 public class PaymentProcessorController {
 
-    private final MetricsRegister metricsRegister;
     private final PaymentProcessorUseCase paymentProcessorUseCase;
     private final WorkService workService;
 
-    public PaymentProcessorController(MetricsRegister metricsRegister,
-                                      PaymentProcessorUseCase paymentProcessorUseCase,
+    public PaymentProcessorController(PaymentProcessorUseCase paymentProcessorUseCase,
                                       WorkService workService) {
-        this.metricsRegister = metricsRegister;
         this.paymentProcessorUseCase = paymentProcessorUseCase;
         this.workService = workService;
     }
@@ -32,8 +28,6 @@ public class PaymentProcessorController {
         var paymentRequestWithTimestamp = paymentRequest.withRequestedAt(Instant.now());
 
         workService.doWork(() -> paymentProcessorUseCase.processPayment(paymentRequestWithTimestamp));
-
-        metricsRegister.countPaymentReceived();
 
         return Mono.empty();
     }

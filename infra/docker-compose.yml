@@ -1,6 +1,11 @@
 services:
   app1: &app-config
-    build: ..
+    image: payment-processor-proxy:0.0.1-SNAPSHOT
+    deploy:
+      resources:
+        limits:
+          cpus: "0.7"
+          memory: "170MB"
     environment:
       - PAYMENT_GATEWAY_DEFAULT=http://payment-processor-default:8080
       - PAYMENT_GATEWAY_FALLBACK=http://payment-processor-fallback:8080
@@ -33,6 +38,7 @@ services:
     deploy:
       resources:
         limits:
+          cpus: "0.1"
           memory: "10MB"
     depends_on:
       - app1

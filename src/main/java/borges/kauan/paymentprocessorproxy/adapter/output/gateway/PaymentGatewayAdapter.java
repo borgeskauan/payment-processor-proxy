@@ -14,6 +14,8 @@ import java.util.function.Supplier;
 @Repository
 public class PaymentGatewayAdapter implements PaymentGatewayPort {
 
+    private final static int MAX_RETRIES = 10;
+
     private final DefaultPaymentRestClient defaultPaymentRestClient;
     private final FallbackPaymentRestClient fallbackPaymentRestClient;
 
@@ -36,10 +38,29 @@ public class PaymentGatewayAdapter implements PaymentGatewayPort {
     }
 
     private String processPaymentInternal(PaymentRequest paymentRequest) {
-        return run(
+        return runWithRetries(
                 () -> processPaymentDefault(paymentRequest),
-                () -> processPaymentFallback(paymentRequest)
+                () -> processPaymentFallback(paymentRequest),
+                MAX_RETRIES
         );
+    }
+
+    private <T> T runWithRetries(Supplier<T> supplier, Supplier<T> fallback, int maxRetries) {
+        int attempt = 0;
+        while (attempt < maxRetries) {
+            try {
+                return supplier.get();
+            } catch (Exception e) {
+                attempt++;
+                log.error("Attempt {} failed: {}", attempt, e.getMessage());
+                if (attempt >= maxRetries) {
+                    log.error("Max retries reached, executing fallback");
+                    return fallback.get();
+                }
+            }
+        }
+
+        throw new RuntimeException("Failed to process payment after " + maxRetries + " attempts");
     }
 
     private String processPaymentDefault(PaymentRequest paymentRequest) {

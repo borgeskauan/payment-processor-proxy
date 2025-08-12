@@ -47,8 +47,6 @@ public class InMemoryPaymentDatabaseAdapter implements PaymentRepositoryPort {
             map.compute(payment.getTimestamp().toEpochMilli(), (ts, list) -> {
                 if (list == null) {
                     list = Collections.synchronizedList(new ArrayList<>()); // unsynchronized for max write speed
-                } else {
-                    log.info("Appending payment with correlationId '{}' at timestamp '{}'. List size is {}", payment.getCorrelationId(), payment.getTimestamp(), list.size());
                 }
 
                 list.add(payment);

@@ -38,9 +38,9 @@ public class PaymentWebClientConfiguration {
     private WebClient createWebClient(String url) {
         // Connection pool configuration
         ConnectionProvider provider = ConnectionProvider.builder("custom-pool")
-                .maxConnections(500) // adjust based on load
+//                .maxConnections(500) // adjust based on load
                 .pendingAcquireMaxCount(-1) // queue if pool is busy
-                .maxIdleTime(Duration.ofSeconds(120)) // close idle connections
+                .maxIdleTime(Duration.ofMinutes(2)) // close idle connections
                 .maxLifeTime(Duration.ofMinutes(5)) // max lifetime before recycling
                 .build();
 
