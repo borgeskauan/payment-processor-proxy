@@ -7,6 +7,8 @@ import borges.kauan.paymentprocessorproxy.domain.payment.entity.Payment;
 import borges.kauan.paymentprocessorproxy.port.input.PaymentProcessorUseCase;
 import borges.kauan.paymentprocessorproxy.port.output.PaymentGatewayPort;
 import borges.kauan.paymentprocessorproxy.port.output.PaymentRepositoryPort;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
@@ -23,15 +25,18 @@ public class PaymentProcessorService implements PaymentProcessorUseCase {
 
     private final MetricsRegister metricsRegister;
 
-    public PaymentProcessorService(PaymentGatewayPort paymentGatewayPort, PaymentRepositoryPort paymentRepositoryPort, MetricsRegister metricsRegister) {
+    private final ObjectMapper objectMapper;
+
+    public PaymentProcessorService(PaymentGatewayPort paymentGatewayPort, PaymentRepositoryPort paymentRepositoryPort, MetricsRegister metricsRegister, ObjectMapper objectMapper) {
         this.paymentGatewayPort = paymentGatewayPort;
         this.paymentRepositoryPort = paymentRepositoryPort;
         this.metricsRegister = metricsRegister;
+        this.objectMapper = objectMapper;
     }
 
     @Override
     public void processPayment(PaymentRequest paymentRequest) {
-        Instant truncatedTimestamp = paymentRequest.getRequestedAt().truncatedTo(ChronoUnit.MICROS);
+        Instant truncatedTimestamp = getTruncatedTimestamp(paymentRequest);
         var requestWithTimestamp = paymentRequest.withRequestedAt(truncatedTimestamp);
 
         var payment = Payment.builder()
@@ -75,5 +80,28 @@ public class PaymentProcessorService implements PaymentProcessorUseCase {
     @Override
     public void purgeStandalonePayments() {
         paymentRepositoryPort.purgeStandalonePayments();
+    }
+
+    @Override
+    public void processPaymentRaw(String body) {
+        try {
+            var node = objectMapper.readTree(body);
+            var paymentRequest = new PaymentRequest(
+                    node.get("correlationId").asText(),
+                    node.get("amount").decimalValue()
+            );
+
+            processPayment(paymentRequest);
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException("Failed to parse PaymentRequest", e);
+        }
+    }
+
+    private static Instant getTruncatedTimestamp(PaymentRequest paymentRequest) {
+        if (paymentRequest.getRequestedAt() == null) {
+            return Instant.now().truncatedTo(ChronoUnit.MICROS);
+        }
+
+        return paymentRequest.getRequestedAt().truncatedTo(ChronoUnit.MICROS);
     }
 }

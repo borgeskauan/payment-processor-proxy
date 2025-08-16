@@ -17,4 +17,6 @@ public interface PaymentProcessorUseCase {
     Mono<Void> purgePayments();
 
     void purgeStandalonePayments();
+
+    void processPaymentRaw(String body);
 }

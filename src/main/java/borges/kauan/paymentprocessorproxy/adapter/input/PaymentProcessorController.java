@@ -1,7 +1,6 @@
 package borges.kauan.paymentprocessorproxy.adapter.input;
 
 import borges.kauan.paymentprocessorproxy.domain.infra.WorkService;
-import borges.kauan.paymentprocessorproxy.domain.payment.dto.PaymentRequest;
 import borges.kauan.paymentprocessorproxy.domain.payment.dto.ProcessedPaymentsSummaryResponse;
 import borges.kauan.paymentprocessorproxy.port.input.PaymentProcessorUseCase;
 import lombok.extern.slf4j.Slf4j;
@@ -24,12 +23,15 @@ public class PaymentProcessorController {
     }
 
     @PostMapping("/payments")
-    public Mono<Void> processPayment(@RequestBody PaymentRequest paymentRequest) {
-        var paymentRequestWithTimestamp = paymentRequest.withRequestedAt(Instant.now());
+    public Mono<Void> processPayment(@RequestBody Mono<String> rawBody) {
+//        long start = System.nanoTime();
 
-        workService.doWork(() -> paymentProcessorUseCase.processPayment(paymentRequestWithTimestamp));
+        return rawBody.flatMap(body -> {
+            workService.doWork(() -> paymentProcessorUseCase.processPaymentRaw(body));
+//            log.info("Handler took {} µs", (System.nanoTime() - start) / 1000);
 
-        return Mono.empty();
+            return Mono.empty();
+        });
     }
 
     @GetMapping("/payments-summary")
