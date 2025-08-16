@@ -12,7 +12,7 @@ public interface PaymentProcessorUseCase {
 
     Mono<ProcessedPaymentsSummaryResponse> getPaymentsSummary(Instant from, Instant to);
 
-    ProcessedPaymentsSummaryResponse getStandalonePaymentsSummary(Instant from, Instant to);
+    Mono<ProcessedPaymentsSummaryResponse> getStandalonePaymentsSummary(Instant from, Instant to);
 
     Mono<Void> purgePayments();
 

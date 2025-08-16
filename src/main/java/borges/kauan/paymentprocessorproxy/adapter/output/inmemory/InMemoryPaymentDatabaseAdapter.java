@@ -61,7 +61,7 @@ public class InMemoryPaymentDatabaseAdapter implements PaymentRepositoryPort {
     }
 
     @Override
-    public ProcessedPaymentsSummaryResponse getStandalonePaymentsSummary(Instant from, Instant to) {
+    public Mono<ProcessedPaymentsSummaryResponse> getStandalonePaymentsSummary(Instant from, Instant to) {
         return calculateLocalSummary(from, to);
     }
 
@@ -70,9 +70,7 @@ public class InMemoryPaymentDatabaseAdapter implements PaymentRepositoryPort {
                 callRemoteSummaryService(from, to)
         ).subscribeOn(Schedulers.boundedElastic());  // Offload blocking call
 
-        Mono<ProcessedPaymentsSummaryResponse> localMono = Mono.fromCallable(() ->
-                calculateLocalSummary(from, to)
-        ).subscribeOn(Schedulers.boundedElastic());  // Offload blocking call if needed
+        Mono<ProcessedPaymentsSummaryResponse> localMono = calculateLocalSummary(from, to);
 
         return Mono.zip(localMono, remoteMono, this::mergeSummaries);
     }
@@ -82,15 +80,20 @@ public class InMemoryPaymentDatabaseAdapter implements PaymentRepositoryPort {
         return summaryRepositoryPort.getPaymentsSummary(from, to);
     }
 
-    // TODO: Convert return type to mono
-    private ProcessedPaymentsSummaryResponse calculateLocalSummary(Instant from, Instant to) {
-        var defaultSummary = buildSummary(filterPayments(from, to, "default"));
-        var fallbackSummary = buildSummary(filterPayments(from, to, "fallback"));
+    private Mono<ProcessedPaymentsSummaryResponse> calculateLocalSummary(Instant from, Instant to) {
+        Mono<ProcessedPaymentsSummary> defaultSummary = Mono.fromCallable(() ->
+                buildSummary(filterPayments(from, to, "default"))
+        ).subscribeOn(Schedulers.boundedElastic()); // Offload blocking work
 
-        return ProcessedPaymentsSummaryResponse.builder()
-                .defaultSummary(defaultSummary)
-                .fallback(fallbackSummary)
-                .build();
+        Mono<ProcessedPaymentsSummary> fallbackSummary = Mono.fromCallable(() ->
+                buildSummary(filterPayments(from, to, "fallback"))
+        ).subscribeOn(Schedulers.boundedElastic()); // Offload blocking work
+
+        return Mono.zip(defaultSummary, fallbackSummary)
+                .map(tuple -> ProcessedPaymentsSummaryResponse.builder()
+                        .defaultSummary(tuple.getT1())
+                        .fallback(tuple.getT2())
+                        .build());
     }
 
     private ProcessedPaymentsSummaryResponse mergeSummaries(ProcessedPaymentsSummaryResponse local, ProcessedPaymentsSummaryResponse remote) {

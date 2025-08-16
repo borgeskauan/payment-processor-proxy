@@ -63,7 +63,7 @@ public class PaymentProcessorService implements PaymentProcessorUseCase {
     }
 
     @Override
-    public ProcessedPaymentsSummaryResponse getStandalonePaymentsSummary(Instant from, Instant to) {
+    public Mono<ProcessedPaymentsSummaryResponse> getStandalonePaymentsSummary(Instant from, Instant to) {
         return paymentRepositoryPort.getStandalonePaymentsSummary(from, to);
     }
 

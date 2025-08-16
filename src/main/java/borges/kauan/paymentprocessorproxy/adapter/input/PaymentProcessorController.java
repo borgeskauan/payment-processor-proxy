@@ -40,9 +40,8 @@ public class PaymentProcessorController {
         return paymentProcessorUseCase.getPaymentsSummary(from, to);
     }
 
-    // TODO: Convert return type to mono
     @GetMapping("/payments-summary/standalone")
-    public ProcessedPaymentsSummaryResponse getStandalonePaymentsSummary(@RequestParam(required = false) Instant from,
+    public Mono<ProcessedPaymentsSummaryResponse> getStandalonePaymentsSummary(@RequestParam(required = false) Instant from,
                                                                          @RequestParam(required = false) Instant to) {
         log.info("Fetching standalone payments summary from {} to {}", from, to);
 
