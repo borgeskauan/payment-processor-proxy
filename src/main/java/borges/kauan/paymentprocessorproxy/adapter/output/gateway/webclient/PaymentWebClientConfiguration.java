@@ -40,16 +40,19 @@ public class PaymentWebClientConfiguration {
         ConnectionProvider provider = ConnectionProvider.builder("custom-pool")
 //                .maxConnections(500) // adjust based on load
                 .pendingAcquireMaxCount(-1) // queue if pool is busy
-                .maxIdleTime(Duration.ofMinutes(2)) // close idle connections
-                .maxLifeTime(Duration.ofMinutes(5)) // max lifetime before recycling
+                .maxIdleTime(Duration.ofMinutes(1)) // close idle connections
+                .maxLifeTime(Duration.ofMinutes(2)) // max lifetime before recycling
                 .build();
 
+        final int connectionTimeout = 200;
+        final int transactionTimeout = 1500;
+
         HttpClient httpClient = HttpClient.create(provider)
-                .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, 5000) // connect timeout
-                .responseTimeout(Duration.ofSeconds(5)) // read/write timeout
+                .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, connectionTimeout) // connect timeout
+                .responseTimeout(Duration.ofMillis(transactionTimeout)) // read/write timeout
                 .doOnConnected(conn -> conn
-                        .addHandlerLast(new ReadTimeoutHandler(5, TimeUnit.SECONDS))
-                        .addHandlerLast(new WriteTimeoutHandler(5, TimeUnit.SECONDS)));
+                        .addHandlerLast(new ReadTimeoutHandler(transactionTimeout, TimeUnit.MILLISECONDS))
+                        .addHandlerLast(new WriteTimeoutHandler(transactionTimeout, TimeUnit.MILLISECONDS)));
 
         return WebClient.builder()
                 .baseUrl(url)

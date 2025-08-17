@@ -1,41 +1,51 @@
 package borges.kauan.paymentprocessorproxy.domain.infra;
 
-import io.micrometer.core.instrument.Timer;
 import org.springframework.beans.factory.DisposableBean;
 import org.springframework.stereotype.Service;
 
-import java.util.concurrent.ArrayBlockingQueue;
-import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
 
 @Service
 public class WorkService implements DisposableBean {
 
-    private final ThreadPoolExecutor executor;
-    private final Timer timer;
+    private final ExecutorService executor;
 
-    public WorkService(MetricsRegister metricsRegister) {
-        int poolSize = 2;      // tune this
-        int queueSize = 5000;  // tune this (pre-allocated)
+    public WorkService() {
+        int maxConcurrentTasks = 50;
+        int queueSize = 5000;
 
+        // Create a virtual-thread executor
         this.executor = new ThreadPoolExecutor(
-                poolSize, poolSize,
+                maxConcurrentTasks,
+                maxConcurrentTasks,
                 0L, TimeUnit.MILLISECONDS,
-                new ArrayBlockingQueue<>(queueSize), // fixed size, preallocated
-                r -> {
-                    Thread t = new Thread(r);
-                    t.setName("WorkExecutor-" + t.threadId());
-                    t.setDaemon(true);
-                    return t;
-                },
-                new ThreadPoolExecutor.CallerRunsPolicy() // backpressure when full
+                new LinkedBlockingQueue<>(queueSize), // Bounded queue
+                Thread.ofVirtual().factory(),
+                new ThreadPoolExecutor.CallerRunsPolicy() // Handle queue full
         );
 
-        this.timer = metricsRegister.createTimer("work.processing.time");
+        // Pre-warm with a few dummy tasks (optional)
+        int preWarmCount = 100; // Adjust based on expected concurrency
+        CountDownLatch latch = new CountDownLatch(preWarmCount);
+        for (int i = 0; i < preWarmCount; i++) {
+            executor.submit(() -> {
+                try {
+                    Thread.sleep(10);
+                } catch (InterruptedException ignored) {
+                }
+                latch.countDown();
+            });
+        }
+
+        try {
+            latch.await(); // Ensure warmup completes
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     public void doWork(Runnable task) {
-        executor.execute(() -> timer.record(task));
+        executor.execute(task);
     }
 
     @Override

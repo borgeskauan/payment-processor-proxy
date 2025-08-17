@@ -13,24 +13,24 @@ import java.time.Instant;
 @RestController
 public class PaymentProcessorController {
 
-    private final PaymentProcessorUseCase paymentProcessorUseCase;
+    private static PaymentProcessorUseCase paymentProcessorUseCase;
     private final WorkService workService;
 
     public PaymentProcessorController(PaymentProcessorUseCase paymentProcessorUseCase, WorkService workService) {
-        this.paymentProcessorUseCase = paymentProcessorUseCase;
+        PaymentProcessorController.paymentProcessorUseCase = paymentProcessorUseCase;
         this.workService = workService;
     }
 
     @PostMapping("/payments")
-    public Mono<Void> processPayment(@RequestBody Mono<String> rawBody) {
-        return rawBody.doOnNext(body ->
-                workService.doWork(() -> paymentProcessorUseCase.processPaymentRaw(body))
-        ).then();
+    public Mono<Void> processPayment(@RequestBody String rawBody) {
+        // Avoid lambda allocation by reusing a Runnable instance if possible
+        workService.doWork(new PaymentTask(rawBody));
+        return Mono.empty();
     }
 
     @GetMapping("/payments-summary")
     public Mono<ProcessedPaymentsSummaryResponse> getPaymentsSummary(@RequestParam(required = false) Instant from,
-                                                               @RequestParam(required = false) Instant to) {
+                                                                     @RequestParam(required = false) Instant to) {
         log.info("Fetching payments summary from {} to {}", from, to);
 
         return paymentProcessorUseCase.getPaymentsSummary(from, to);
@@ -38,7 +38,7 @@ public class PaymentProcessorController {
 
     @GetMapping("/payments-summary/standalone")
     public Mono<ProcessedPaymentsSummaryResponse> getStandalonePaymentsSummary(@RequestParam(required = false) Instant from,
-                                                                         @RequestParam(required = false) Instant to) {
+                                                                               @RequestParam(required = false) Instant to) {
         log.info("Fetching standalone payments summary from {} to {}", from, to);
 
         return paymentProcessorUseCase.getStandalonePaymentsSummary(from, to);
@@ -55,5 +55,14 @@ public class PaymentProcessorController {
     public void purgeStandalonePayments() {
         log.info("Purging standalone payments");
         paymentProcessorUseCase.purgeStandalonePayments();
+    }
+
+    // Predefined task class to avoid lambda allocations
+    private record PaymentTask(String rawBody) implements Runnable {
+
+        @Override
+        public void run() {
+            paymentProcessorUseCase.processPaymentRaw(rawBody);
+        }
     }
 }

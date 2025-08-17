@@ -1,6 +1,7 @@
 services:
   app1: &app-config
     image: payment-processor-proxy:0.0.1-SNAPSHOT
+    command: ["--gc=serial"]
     deploy:
       resources:
         limits:
