@@ -16,22 +16,16 @@ public class PaymentProcessorController {
     private final PaymentProcessorUseCase paymentProcessorUseCase;
     private final WorkService workService;
 
-    public PaymentProcessorController(PaymentProcessorUseCase paymentProcessorUseCase,
-                                      WorkService workService) {
+    public PaymentProcessorController(PaymentProcessorUseCase paymentProcessorUseCase, WorkService workService) {
         this.paymentProcessorUseCase = paymentProcessorUseCase;
         this.workService = workService;
     }
 
     @PostMapping("/payments")
     public Mono<Void> processPayment(@RequestBody Mono<String> rawBody) {
-//        long start = System.nanoTime();
-
-        return rawBody.flatMap(body -> {
-            workService.doWork(() -> paymentProcessorUseCase.processPaymentRaw(body));
-//            log.info("Handler took {} µs", (System.nanoTime() - start) / 1000);
-
-            return Mono.empty();
-        });
+        return rawBody.doOnNext(body ->
+                workService.doWork(() -> paymentProcessorUseCase.processPaymentRaw(body))
+        ).then();
     }
 
     @GetMapping("/payments-summary")
