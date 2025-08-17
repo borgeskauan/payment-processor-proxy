@@ -45,7 +45,7 @@ public class PaymentWebClientConfiguration {
                 .build();
 
         final int connectionTimeout = 200;
-        final int transactionTimeout = 1500;
+        final int transactionTimeout = 5000;
 
         HttpClient httpClient = HttpClient.create(provider)
                 .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, connectionTimeout) // connect timeout

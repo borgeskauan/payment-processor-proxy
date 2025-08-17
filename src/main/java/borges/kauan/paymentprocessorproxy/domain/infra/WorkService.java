@@ -11,23 +11,21 @@ public class WorkService implements DisposableBean {
     private final ExecutorService executor;
 
     public WorkService() {
-        int maxConcurrentTasks = 50;
-        int queueSize = 5000;
+        int maxConcurrentTasks = 35;
 
         // Create a virtual-thread executor
         this.executor = new ThreadPoolExecutor(
                 maxConcurrentTasks,
                 maxConcurrentTasks,
                 0L, TimeUnit.MILLISECONDS,
-                new LinkedBlockingQueue<>(queueSize), // Bounded queue
+                new LinkedBlockingQueue<>(), // Unbounded queue
                 Thread.ofVirtual().factory(),
                 new ThreadPoolExecutor.CallerRunsPolicy() // Handle queue full
         );
 
         // Pre-warm with a few dummy tasks (optional)
-        int preWarmCount = 100; // Adjust based on expected concurrency
-        CountDownLatch latch = new CountDownLatch(preWarmCount);
-        for (int i = 0; i < preWarmCount; i++) {
+        CountDownLatch latch = new CountDownLatch(maxConcurrentTasks);
+        for (int i = 0; i < maxConcurrentTasks; i++) {
             executor.submit(() -> {
                 try {
                     Thread.sleep(10);
