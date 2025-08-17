@@ -14,7 +14,7 @@ import java.util.function.Supplier;
 @Repository
 public class PaymentGatewayAdapter implements PaymentGatewayPort {
 
-    private final static int MAX_RETRIES = 10;
+    private final static int MAX_RETRIES = 2;
 
     private final DefaultPaymentRestClient defaultPaymentRestClient;
     private final FallbackPaymentRestClient fallbackPaymentRestClient;
